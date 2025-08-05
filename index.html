@@ -114,15 +114,34 @@
                         <label for="apiProvider">选择识别服务:</label>
                         <select id="apiProvider">
                             <option value="demo">演示模式 (模拟数据)</option>
-                            <option value="openai">OpenAI Vision API</option>
-                            <option value="google">Google Vision API</option>
-                            <option value="azure">Azure Vision API</option>
+                            <optgroup label="国外平台">
+                                <option value="openai">OpenAI Vision API (GPT-4V)</option>
+                                <option value="google">Google Vision API</option>
+                                <option value="azure">Azure Vision API</option>
+                            </optgroup>
+                            <optgroup label="国内平台">
+                                <option value="baidu">百度智能云 (文心一言)</option>
+                                <option value="aliyun">阿里云视觉智能</option>
+                                <option value="tencent">腾讯云图像标签</option>
+                                <option value="xunfei">讯飞星火多模态</option>
+                                <option value="deepseek">DeepSeek Vision</option>
+                            </optgroup>
                         </select>
                     </div>
                     <div class="setting-group">
-                        <label for="apiKey">API密钥:</label>
+                        <label for="apiKey">主要密钥:</label>
                         <input type="password" id="apiKey" placeholder="输入您的API密钥">
-                        <small>注意: 密钥仅在本地存储，不会上传到服务器</small>
+                        <small id="apiKeyHint">注意: 密钥仅在本地存储，不会上传到服务器</small>
+                    </div>
+                    <div class="setting-group" id="secondaryKeyGroup" style="display: none;">
+                        <label for="apiSecret">辅助密钥:</label>
+                        <input type="password" id="apiSecret" placeholder="输入辅助密钥">
+                        <small id="apiSecretHint">部分平台需要两个密钥</small>
+                    </div>
+                    <div class="setting-group" id="endpointGroup" style="display: none;">
+                        <label for="apiEndpoint">API端点:</label>
+                        <input type="text" id="apiEndpoint" placeholder="输入API端点URL">
+                        <small id="endpointHint">自定义API端点地址</small>
                     </div>
                     <button class="btn btn-primary" id="saveSettings">
                         <i class="fas fa-save"></i> 保存设置
