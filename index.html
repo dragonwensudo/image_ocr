@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片内容识别器</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-eye"></i> 智能图片识别</h1>
+            <p>一键识别图片内容，支持多种物体、场景和文字识别</p>
+        </header>
+
+        <main class="main-content">
+            <!-- 上传区域 -->
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                        <h3>选择或拖拽图片到这里</h3>
+                        <p>支持 JPG、PNG、GIF、WebP 格式</p>
+                        <button class="upload-btn" id="uploadBtn">
+                            <i class="fas fa-folder-open"></i> 选择图片
+                        </button>
+                        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图片预览区域 -->
+            <div class="preview-section" id="previewSection" style="display: none;">
+                <div class="image-container">
+                    <img id="previewImage" alt="预览图片">
+                    <div class="image-overlay">
+                        <button class="btn btn-secondary" id="changeImageBtn">
+                            <i class="fas fa-sync-alt"></i> 更换图片
+                        </button>
+                        <button class="btn btn-primary" id="analyzeBtn">
+                            <i class="fas fa-magic"></i> 一键识别
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 加载动画 -->
+            <div class="loading-section" id="loadingSection" style="display: none;">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>正在分析图片内容...</p>
+                </div>
+            </div>
+
+            <!-- 结果展示区域 -->
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <div class="results-header">
+                    <h2><i class="fas fa-search"></i> 识别结果</h2>
+                    <button class="btn btn-outline" id="newAnalysisBtn">
+                        <i class="fas fa-plus"></i> 新的分析
+                    </button>
+                </div>
+                
+                <div class="results-content">
+                    <!-- 主要描述 -->
+                    <div class="result-card main-description">
+                        <h3><i class="fas fa-image"></i> 图片描述</h3>
+                        <p id="mainDescription">这里将显示图片的主要内容描述</p>
+                    </div>
+
+                    <!-- 检测到的对象 -->
+                    <div class="result-card objects-detected">
+                        <h3><i class="fas fa-cube"></i> 检测到的对象</h3>
+                        <div id="objectsList" class="objects-list">
+                            <!-- 对象标签将在这里动态生成 -->
+                        </div>
+                    </div>
+
+                    <!-- 文字识别（如果有） -->
+                    <div class="result-card text-detection" id="textDetection" style="display: none;">
+                        <h3><i class="fas fa-font"></i> 识别到的文字</h3>
+                        <div id="detectedText" class="detected-text">
+                            <!-- 识别到的文字将在这里显示 -->
+                        </div>
+                    </div>
+
+                    <!-- 场景分析 -->
+                    <div class="result-card scene-analysis">
+                        <h3><i class="fas fa-map-marker-alt"></i> 场景分析</h3>
+                        <div id="sceneInfo" class="scene-info">
+                            <!-- 场景信息将在这里显示 -->
+                        </div>
+                    </div>
+
+                    <!-- 置信度信息 -->
+                    <div class="result-card confidence-info">
+                        <h3><i class="fas fa-chart-bar"></i> 分析详情</h3>
+                        <div id="confidenceDetails" class="confidence-details">
+                            <!-- 置信度和其他详细信息 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API设置区域 -->
+            <div class="settings-section">
+                <button class="settings-toggle" id="settingsToggle">
+                    <i class="fas fa-cog"></i> API设置
+                </button>
+                <div class="settings-panel" id="settingsPanel" style="display: none;">
+                    <h3>API配置</h3>
+                    <div class="setting-group">
+                        <label for="apiProvider">选择识别服务:</label>
+                        <select id="apiProvider">
+                            <option value="demo">演示模式 (模拟数据)</option>
+                            <option value="openai">OpenAI Vision API</option>
+                            <option value="google">Google Vision API</option>
+                            <option value="azure">Azure Vision API</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label for="apiKey">API密钥:</label>
+                        <input type="password" id="apiKey" placeholder="输入您的API密钥">
+                        <small>注意: 密钥仅在本地存储，不会上传到服务器</small>
+                    </div>
+                    <button class="btn btn-primary" id="saveSettings">
+                        <i class="fas fa-save"></i> 保存设置
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2024 智能图片识别器 | 基于人工智能技术</p>
+            <div class="social-links">
+                <a href="#" title="GitHub"><i class="fab fa-github"></i></a>
+                <a href="#" title="Twitter"><i class="fab fa-twitter"></i></a>
+                <a href="#" title="LinkedIn"><i class="fab fa-linkedin"></i></a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
