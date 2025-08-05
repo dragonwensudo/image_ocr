@@ -2,7 +2,9 @@
 let currentImage = null;
 let apiSettings = {
     provider: 'demo',
-    apiKey: ''
+    apiKey: '',
+    apiSecret: '',
+    apiEndpoint: ''
 };
 
 // DOM元素
@@ -21,6 +23,13 @@ const elements = {
     settingsPanel: document.getElementById('settingsPanel'),
     apiProvider: document.getElementById('apiProvider'),
     apiKey: document.getElementById('apiKey'),
+    apiSecret: document.getElementById('apiSecret'),
+    apiEndpoint: document.getElementById('apiEndpoint'),
+    secondaryKeyGroup: document.getElementById('secondaryKeyGroup'),
+    endpointGroup: document.getElementById('endpointGroup'),
+    apiKeyHint: document.getElementById('apiKeyHint'),
+    apiSecretHint: document.getElementById('apiSecretHint'),
+    endpointHint: document.getElementById('endpointHint'),
     saveSettings: document.getElementById('saveSettings')
 };
 
@@ -49,6 +58,7 @@ function initializeEventListeners() {
     
     // 设置相关
     elements.settingsToggle.addEventListener('click', toggleSettings);
+    elements.apiProvider.addEventListener('change', updateApiConfigFields);
     elements.saveSettings.addEventListener('click', saveSettings);
 }
 
@@ -151,6 +161,21 @@ async function analyzeImage() {
                 break;
             case 'azure':
                 result = await analyzeWithAzure(currentImage);
+                break;
+            case 'baidu':
+                result = await analyzeWithBaidu(currentImage);
+                break;
+            case 'aliyun':
+                result = await analyzeWithAliyun(currentImage);
+                break;
+            case 'tencent':
+                result = await analyzeWithTencent(currentImage);
+                break;
+            case 'xunfei':
+                result = await analyzeWithXunfei(currentImage);
+                break;
+            case 'deepseek':
+                result = await analyzeWithDeepseek(currentImage);
                 break;
             case 'demo':
             default:
@@ -277,6 +302,193 @@ async function analyzeWithAzure(image) {
     
     const data = await response.json();
     return parseAzureResponse(data);
+}
+
+// 百度智能云分析
+async function analyzeWithBaidu(image) {
+    if (!apiSettings.apiKey) {
+        throw new Error('请先设置百度智能云API密钥');
+    }
+    
+    const base64 = await fileToBase64(image, false);
+    
+    // 获取Access Token
+    const tokenResponse = await fetch('https://aip.baidubce.com/oauth/2.0/token', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            grant_type: 'client_credentials',
+            client_id: apiSettings.apiKey, // API Key
+            client_secret: apiSettings.apiSecret || '' // Secret Key
+        })
+    });
+    
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access_token;
+    
+    const response = await fetch(`https://aip.baidubce.com/rest/2.0/image-classify/v2/advanced_general?access_token=${accessToken}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `image=${encodeURIComponent(base64)}`
+    });
+    
+    if (!response.ok) {
+        throw new Error(`百度API请求失败: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return parseBaiduResponse(data);
+}
+
+// 阿里云视觉智能分析
+async function analyzeWithAliyun(image) {
+    if (!apiSettings.apiKey) {
+        throw new Error('请先设置阿里云API密钥');
+    }
+    
+    const base64 = await fileToBase64(image, false);
+    
+    const response = await fetch('https://imagerecog.cn-shanghai.aliyuncs.com/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiSettings.apiKey}`
+        },
+        body: JSON.stringify({
+            Action: 'RecognizeImage',
+            Version: '2019-09-30',
+            RegionId: 'cn-shanghai',
+            Body: base64
+        })
+    });
+    
+    if (!response.ok) {
+        throw new Error(`阿里云API请求失败: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return parseAliyunResponse(data);
+}
+
+// 腾讯云图像标签分析
+async function analyzeWithTencent(image) {
+    if (!apiSettings.apiKey) {
+        throw new Error('请先设置腾讯云API密钥');
+    }
+    
+    const base64 = await fileToBase64(image, true);
+    
+    const response = await fetch('https://tiia.tencentcloudapi.com/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': apiSettings.apiKey
+        },
+        body: JSON.stringify({
+            Action: 'DetectLabel',
+            Version: '2019-05-29',
+            Region: 'ap-beijing',
+            ImageBase64: base64.split(',')[1]
+        })
+    });
+    
+    if (!response.ok) {
+        throw new Error(`腾讯云API请求失败: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return parseTencentResponse(data);
+}
+
+// 讯飞星火多模态分析
+async function analyzeWithXunfei(image) {
+    if (!apiSettings.apiKey) {
+        throw new Error('请先设置讯飞API密钥');
+    }
+    
+    const base64 = await fileToBase64(image, true);
+    
+    // 注意：讯飞星火使用WebSocket连接，这里简化为HTTP请求示例
+    // 实际使用时需要实现WebSocket连接和认证
+    const response = await fetch('https://spark-api.xf-yun.com/v4.0/chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiSettings.apiKey}`
+        },
+        body: JSON.stringify({
+            model: 'spark-4.0-vision',
+            messages: [{
+                role: 'user',
+                content: [
+                    {
+                        type: 'image_url',
+                        image_url: {
+                            url: base64
+                        }
+                    },
+                    {
+                        type: 'text',
+                        text: '请详细分析这张图片，包括主要内容、检测到的对象、场景信息等。'
+                    }
+                ]
+            }]
+        })
+    });
+    
+    if (!response.ok) {
+        throw new Error(`讯飞API请求失败: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return parseXunfeiResponse(data);
+}
+
+// DeepSeek Vision分析
+async function analyzeWithDeepseek(image) {
+    if (!apiSettings.apiKey) {
+        throw new Error('请先设置DeepSeek API密钥');
+    }
+    
+    const base64 = await fileToBase64(image, true);
+    
+    const response = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiSettings.apiKey}`
+        },
+        body: JSON.stringify({
+            model: 'deepseek-vl',
+            messages: [{
+                role: 'user',
+                content: [
+                    {
+                        type: 'image_url',
+                        image_url: {
+                            url: base64
+                        }
+                    },
+                    {
+                        type: 'text',
+                        text: '请分析这张图片的内容，包括物体识别、场景分析、文字识别等信息。'
+                    }
+                ]
+            }],
+            max_tokens: 1000
+        })
+    });
+    
+    if (!response.ok) {
+        throw new Error(`DeepSeek API请求失败: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return parseDeepseekResponse(data);
 }
 
 // 演示模式 - 生成模拟数据
@@ -425,6 +637,102 @@ function parseAzureResponse(response) {
     };
 }
 
+function parseBaiduResponse(response) {
+    return {
+        description: response.result && response.result.length > 0 ? 
+            `检测到${response.result.length}个主要对象：${response.result.slice(0, 3).map(item => item.keyword).join('、')}` : 
+            "百度智能云分析结果",
+        objects: response.result ? 
+            response.result.map(item => ({
+                name: item.keyword,
+                confidence: item.score
+            })) : [],
+        text: null,
+        scene: response.result ? 
+            response.result.slice(0, 5).map(item => ({
+                label: item.keyword,
+                confidence: item.score
+            })) : [],
+        confidence: response.result && response.result.length > 0 ? response.result[0].score : 0.8
+    };
+}
+
+function parseAliyunResponse(response) {
+    return {
+        description: response.Data && response.Data.Tags && response.Data.Tags.length > 0 ? 
+            `阿里云识别结果：${response.Data.Tags.slice(0, 3).map(tag => tag.TagName).join('、')}` : 
+            "阿里云视觉智能分析结果",
+        objects: response.Data && response.Data.Tags ? 
+            response.Data.Tags.map(tag => ({
+                name: tag.TagName,
+                confidence: tag.TagConfidence
+            })) : [],
+        text: null,
+        scene: response.Data && response.Data.Tags ? 
+            response.Data.Tags.slice(0, 5).map(tag => ({
+                label: tag.TagName,
+                confidence: tag.TagConfidence
+            })) : [],
+        confidence: response.Data && response.Data.Tags && response.Data.Tags.length > 0 ? response.Data.Tags[0].TagConfidence : 0.8
+    };
+}
+
+function parseTencentResponse(response) {
+    return {
+        description: response.Response && response.Response.Labels && response.Response.Labels.length > 0 ? 
+            `腾讯云识别结果：${response.Response.Labels.slice(0, 3).map(label => label.Name).join('、')}` : 
+            "腾讯云图像标签分析结果",
+        objects: response.Response && response.Response.Labels ? 
+            response.Response.Labels.map(label => ({
+                name: label.Name,
+                confidence: label.Confidence
+            })) : [],
+        text: null,
+        scene: response.Response && response.Response.Labels ? 
+            response.Response.Labels.slice(0, 5).map(label => ({
+                label: label.Name,
+                confidence: label.Confidence
+            })) : [],
+        confidence: response.Response && response.Response.Labels && response.Response.Labels.length > 0 ? response.Response.Labels[0].Confidence : 0.8
+    };
+}
+
+function parseXunfeiResponse(response) {
+    const content = response.choices && response.choices[0] && response.choices[0].message ? 
+        response.choices[0].message.content : "讯飞星火多模态分析结果";
+    
+    return {
+        description: content,
+        objects: [
+            { name: "AI生成内容", confidence: 0.9 },
+            { name: "多模态识别", confidence: 0.85 }
+        ],
+        text: null,
+        scene: [
+            { label: "讯飞星火分析", confidence: 0.9 }
+        ],
+        confidence: 0.9
+    };
+}
+
+function parseDeepseekResponse(response) {
+    const content = response.choices && response.choices[0] && response.choices[0].message ? 
+        response.choices[0].message.content : "DeepSeek Vision 分析结果";
+    
+    return {
+        description: content,
+        objects: [
+            { name: "深度学习识别", confidence: 0.88 },
+            { name: "视觉理解", confidence: 0.85 }
+        ],
+        text: null,
+        scene: [
+            { label: "DeepSeek分析", confidence: 0.88 }
+        ],
+        confidence: 0.88
+    };
+}
+
 // 显示结果
 function displayResults(result) {
     // 主要描述
@@ -524,23 +832,116 @@ function toggleSettings() {
     panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 }
 
+// 更新API配置字段显示
+function updateApiConfigFields() {
+    const provider = elements.apiProvider.value;
+    
+    // 隐藏所有可选字段
+    elements.secondaryKeyGroup.style.display = 'none';
+    elements.endpointGroup.style.display = 'none';
+    
+    // 重置提示文本
+    elements.apiKeyHint.textContent = '注意: 密钥仅在本地存储，不会上传到服务器';
+    elements.apiKey.placeholder = '输入您的API密钥';
+    
+    switch(provider) {
+        case 'demo':
+            elements.apiKeyHint.textContent = '演示模式无需配置API密钥';
+            elements.apiKey.placeholder = '演示模式';
+            break;
+            
+        case 'openai':
+            elements.apiKeyHint.textContent = '输入OpenAI API Key，格式：sk-xxxxxx';
+            elements.apiKey.placeholder = 'sk-your_openai_api_key_here';
+            break;
+            
+        case 'google':
+            elements.apiKeyHint.textContent = '输入Google Cloud Vision API Key';
+            elements.apiKey.placeholder = 'google_vision_api_key_here';
+            break;
+            
+        case 'azure':
+            elements.apiKeyHint.textContent = '输入Azure Cognitive Services密钥';
+            elements.apiKey.placeholder = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+            elements.endpointGroup.style.display = 'block';
+            elements.endpointHint.textContent = '输入Azure端点URL';
+            elements.apiEndpoint.placeholder = 'https://your-resource.cognitiveservices.azure.com/';
+            break;
+            
+        case 'baidu':
+            elements.apiKeyHint.textContent = '输入百度智能云API Key';
+            elements.apiKey.placeholder = 'xxxxxxxxxxxxxxxxxxxxxxxx';
+            elements.secondaryKeyGroup.style.display = 'block';
+            elements.apiSecretHint.textContent = '输入百度智能云Secret Key';
+            elements.apiSecret.placeholder = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+            break;
+            
+        case 'aliyun':
+            elements.apiKeyHint.textContent = '输入阿里云Access Key ID';
+            elements.apiKey.placeholder = 'aliyun_access_key_id_here';
+            elements.secondaryKeyGroup.style.display = 'block';
+            elements.apiSecretHint.textContent = '输入阿里云Access Key Secret';
+            elements.apiSecret.placeholder = 'aliyun_access_key_secret_here';
+            break;
+            
+        case 'tencent':
+            elements.apiKeyHint.textContent = '输入腾讯云SecretId';
+            elements.apiKey.placeholder = '';
+            elements.secondaryKeyGroup.style.display = 'block';
+            elements.apiSecretHint.textContent = '输入腾讯云SecretKey';
+            elements.apiSecret.placeholder = 'TC_SecretKey_here';
+            break;
+            
+        case 'xunfei':
+            elements.apiKeyHint.textContent = '输入讯飞星火API Key';
+            elements.apiKey.placeholder = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+            elements.secondaryKeyGroup.style.display = 'block';
+            elements.apiSecretHint.textContent = '输入讯飞星火API Secret';
+            elements.apiSecret.placeholder = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+            break;
+            
+        case 'deepseek':
+            elements.apiKeyHint.textContent = '输入DeepSeek API Key';
+            elements.apiKey.placeholder = 'deepseek_api_key_here';
+            break;
+            
+        default:
+            break;
+    }
+}
+
 function saveSettings() {
     apiSettings.provider = elements.apiProvider.value;
     apiSettings.apiKey = elements.apiKey.value;
+    apiSettings.apiSecret = elements.apiSecret.value;
+    apiSettings.apiEndpoint = elements.apiEndpoint.value;
     
     // 保存到本地存储
     localStorage.setItem('imageAnalyzer_settings', JSON.stringify(apiSettings));
     
-    showNotification('设置已保存', 'success');
+    showMessage('设置已保存', 'success');
     elements.settingsPanel.style.display = 'none';
 }
 
 function loadSettings() {
     const saved = localStorage.getItem('imageAnalyzer_settings');
     if (saved) {
-        apiSettings = { ...apiSettings, ...JSON.parse(saved) };
-        elements.apiProvider.value = apiSettings.provider;
-        elements.apiKey.value = apiSettings.apiKey;
+        try {
+            const loadedSettings = JSON.parse(saved);
+            apiSettings = { ...apiSettings, ...loadedSettings };
+            elements.apiProvider.value = apiSettings.provider || 'demo';
+            elements.apiKey.value = apiSettings.apiKey || '';
+            elements.apiSecret.value = apiSettings.apiSecret || '';
+            elements.apiEndpoint.value = apiSettings.apiEndpoint || '';
+            
+            // 更新配置字段显示
+            updateApiConfigFields();
+        } catch (e) {
+            console.error('加载设置失败:', e);
+        }
+    } else {
+        // 首次加载时更新配置字段显示
+        updateApiConfigFields();
     }
 }
 
